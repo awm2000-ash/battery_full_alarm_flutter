@@ -1,0 +1,16 @@
+# Use the recommended Flutter lints
+include: package:flutter_lints/flutter.yaml
+# You can add your own custom rules below if needed
+linter:
+  rules:
+    # Examples of optional custom rules:
+    # enforce const constructors where possible
+    prefer_const_constructors: true
+    # prefer const literals
+    prefer_const_literals_to_create_immutables: true
+    # prefer final for local variables
+    prefer_final_locals: true
+    # avoid empty else blocks
+    avoid_empty_else: true
+    # avoid using print statements in production code
+    avoid_print: false

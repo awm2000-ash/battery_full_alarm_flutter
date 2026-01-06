@@ -1,0 +1,32 @@
+name: battery_full_alarm
+description: Rings an alarm when battery is full while charging.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  battery_plus: ^6.0.1
+  audioplayers: ^5.2.1
+  file_picker: ^10.3.3
+  shared_preferences: ^2.3.3
+  # New replacements
+  just_audio: ^0.9.36
+  audio_service: ^0.18.12
+  vibration: ^3.1.4
+  flutter_foreground_task: ^4.2.0
+  permission_handler: ^11.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - lib/assets/alarm.mp3
