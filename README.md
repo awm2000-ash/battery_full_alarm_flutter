@@ -1,9 +1,9 @@
 # Battery Full Alarm
-Rings an alarm when your battery reaches 95% **while charging**. Stops when unplugged or manually turned off
+Rings an alarm when your battery reaches the configured threshold value (choosed by the user in the drop-down) **while charging**. Stops when unplugged or manually turned off
 
 ## Features
 - Monitors battery in real-time
-- Rings alarm when full **(95%)**
+- Rings alarm when the charge percent reaches the configured threshold value
 - Stops when unplugged
 - Choose custom alarm tone from storage
 - Uses default ringtone otherwise
