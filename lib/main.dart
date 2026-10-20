@@ -16,9 +16,10 @@ class BatteryFullAlarmApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorSchemeSeed: Colors.teal,
+        //colorSchemeSeed: const Color.fromARGB(255, 247, 1, 169),
         useMaterial3: true,
       ),
-      home: BatteryAlarmScreen(),
+      home: const BatteryAlarmScreen(),
     );
   }
 }

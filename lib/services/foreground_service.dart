@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:isolate';
+
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:battery_plus/battery_plus.dart';
 import 'package:just_audio/just_audio.dart';
+
 import '../utils/preferences.dart';
 
 @pragma('vm:entry-point')
@@ -11,17 +14,29 @@ void startCallback() {
 
 class BatteryAlarmTaskHandler extends TaskHandler {
   final Battery _battery = Battery();
-  final _player = AudioPlayer();
+  late final AudioPlayer _player;
+
   bool _isAlarmRinging = false;
-  static const threshold = 95;
+  int _threshold = Preferences.defaultThreshold;
 
   @override
   Future<void> onStart(DateTime timestamp, SendPort? sendPort) async {
-    print("Foreground task started");
+    print('Foreground task started');
+    _player = AudioPlayer();
+
+    try {
+      _threshold = await Preferences.loadThreshold();
+    } catch (e) {
+      _threshold = Preferences.defaultThreshold;
+      print('Error loading battery threshold; using $_threshold%: $e');
+    }
+
     FlutterForegroundTask.updateService(
       notificationTitle: 'Battery Full Alarm',
-      notificationText: 'Monitoring battery...',
+      notificationText: 'Monitoring battery. Alarm threshold: $_threshold%.',
     );
+
+    await _checkBattery();
   }
 
   @override
@@ -32,26 +47,30 @@ class BatteryAlarmTaskHandler extends TaskHandler {
   Future<void> _checkBattery() async {
     final level = await _battery.batteryLevel;
     final state = await _battery.batteryState;
-
     final charging =
         state == BatteryState.charging || state == BatteryState.full;
 
     print(
-        "Battery check => level=$level, state=$state, ringing=$_isAlarmRinging");
+      'Battery check => level=$level, state=$state, '
+      'threshold=$_threshold, ringing=$_isAlarmRinging',
+    );
 
-    if (charging && level >= threshold && !_isAlarmRinging) {
+    if (charging && level >= _threshold && !_isAlarmRinging) {
       _isAlarmRinging = true;
       await _startAlarm();
-    } else if ((!charging || level < threshold) && _isAlarmRinging) {
+    } else if ((!charging || level < _threshold) && _isAlarmRinging) {
+      // Stop playback if the charger is unplugged or the level drops below
+      // the threshold. Monitoring itself continues.
       await _stopAlarm();
     }
   }
 
   Future<void> _startAlarm() async {
-    print("Starting alarm...");
-    final path = await Preferences.loadRingtonePath();
+    print('Starting alarm...');
 
     try {
+      final path = await Preferences.loadRingtonePath();
+
       if (path != null && path.isNotEmpty) {
         await _player.setFilePath(path);
       } else {
@@ -59,37 +78,59 @@ class BatteryAlarmTaskHandler extends TaskHandler {
       }
 
       await _player.setLoopMode(LoopMode.one);
-      await _player.play();
 
-      print("Alarm is PLAYING successfully");
+      // Do not await playback: looping playback may remain active indefinitely.
+      unawaited(_playAlarm());
+
+      FlutterForegroundTask.updateService(
+        notificationTitle: 'Battery Threshold Reached!',
+        notificationText: 'Battery reached $_threshold%. Unplug to stop.',
+      );
     } catch (e) {
-      print("Error playing alarm: $e");
+      _isAlarmRinging = false;
+      print('Error starting alarm: $e');
     }
+  }
 
-    FlutterForegroundTask.updateService(
-      notificationTitle: 'Battery Full!',
-      notificationText: 'Reached $threshold%. Unplug to stop.',
-    );
+  Future<void> _playAlarm() async {
+    try {
+      await _player.play();
+      print('Alarm playback completed');
+    } catch (e) {
+      _isAlarmRinging = false;
+      print('Alarm playback error: $e');
+    }
   }
 
   Future<void> _stopAlarm() async {
-    print("Stopping alarm...");
+    print('Stopping alarm...');
+
     try {
       await _player.stop();
-    } catch (_) {}
+    } catch (e) {
+      print('Error stopping alarm: $e');
+    }
+
     _isAlarmRinging = false;
 
     FlutterForegroundTask.updateService(
       notificationTitle: 'Battery Full Alarm',
-      notificationText: 'Monitoring battery...',
+      notificationText: 'Monitoring battery. Alarm threshold: $_threshold%.',
     );
   }
 
   @override
   void onButtonPressed(String id) {
     if (id == 'stop') {
-      _stopAlarm();
+      unawaited(_stopMonitoringFromNotification());
     }
+  }
+
+  Future<void> _stopMonitoringFromNotification() async {
+    print('Notification Stop pressed');
+
+    await _stopAlarm();
+    await FlutterForegroundTask.stopService();
   }
 
   @override
@@ -99,7 +140,7 @@ class BatteryAlarmTaskHandler extends TaskHandler {
 
   @override
   Future<void> onDestroy(DateTime timestamp, SendPort? sendPort) async {
-    print("Service destroyed");
+    print('Service destroyed');
     await _player.dispose();
   }
 }

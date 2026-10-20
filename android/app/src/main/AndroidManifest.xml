@@ -1,26 +1,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.battery_full_alarm">
 
-    <!-- Permissions -->
+    <!-- Foreground service and audio playback -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Needed if loading user ringtone from storage -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
-    <!-- Android 13+ notification permission -->
+    <!-- Used on Android 13+ for the foreground-service notification. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- The system file picker grants access to the selected audio file; broad
+         storage permissions are not needed for that flow on modern Android. -->
 
     <application
         android:name="${applicationName}"
         android:label="Battery Full Alarm"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- Main Launcher Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -41,23 +38,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Battery change & boot receiver -->
-        <receiver
-            android:name=".BatteryReceiver"
-            android:exported="true"
-            android:enabled="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BATTERY_CHANGED" />
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
+        <!-- Do not declare BatteryReceiver: no such class exists, and
+             ACTION_BATTERY_CHANGED cannot be delivered to manifest receivers. -->
 
-        <!-- REQUIRED Foreground Service for plugin -->
         <service
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="mediaPlayback|connectedDevice|location" />
+            android:foregroundServiceType="mediaPlayback" />
 
         <meta-data
             android:name="flutterEmbedding"
